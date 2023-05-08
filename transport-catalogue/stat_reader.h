@@ -1,16 +1,20 @@
 #pragma once
 
 #include "transport_catalogue.h"
+#include <utility>
 
 namespace transport {
 
-void ProcessRequests(Catalogue& catalogue);
+void ProcessRequests(std::istream& in,Catalogue & catalogue);
 
 namespace detail {
 
-void PrintRoute(std::string& line, Catalogue& catalogue);
-void PrintStop(std::string& line, Catalogue& catalogue);
+void PrintRoute(std::ostream& out, std::string& line, Catalogue& catalogue);
+void PrintStop(std::ostream& out, std::string& line, Catalogue& catalogue);
 
-} // namespace detail
 
-} // namespace transport
+		
+		
+
+}// namespace detail
+}// namespace transport

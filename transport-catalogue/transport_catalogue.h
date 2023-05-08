@@ -11,6 +11,7 @@
 #include <optional>
 #include <unordered_set>
 #include <set>
+#include <string_view>
 
 namespace transport {
 
@@ -36,8 +37,8 @@ struct RouteInfo {
 
 class Catalogue {
 public:
-    void AddRoute(Bus& bus);
-    void AddStop(Stop& stop);
+    void AddRoute(const Bus& bus);
+    void AddStop(const Stop& stop);
     const Bus* FindRoute(const std::string& route_number) const;
     Stop* FindStop(const std::string& stop_name) const;
     const RouteInfo RouteInformation(const std::string& route_number) const;

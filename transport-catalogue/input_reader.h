@@ -6,7 +6,7 @@
 
 namespace transport {
 
-void FillCatalogue(Catalogue& catalogue);
+void FillCatalogue(std::istream& in, Catalogue& catalogue);
 
 namespace detail {
 

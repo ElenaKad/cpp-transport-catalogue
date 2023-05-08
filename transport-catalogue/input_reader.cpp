@@ -2,13 +2,13 @@
 
 namespace transport {
 
-void FillCatalogue(Catalogue& catalogue) {
+void FillCatalogue(std::istream& in, Catalogue& catalogue) {
     std::vector<std::string> query_bus;
     std::vector<std::string> query_stop;
     std::vector<std::string> query_stop_distances;
     size_t requests_count;
-    
-    std::cin >> requests_count;
+    in >> requests_count;
+
     for (size_t i = 0; i < requests_count; ++i) {
         std::string keyword, line;
         std::cin >> keyword;

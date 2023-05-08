@@ -2,7 +2,7 @@
 
 namespace transport {
 
-void Catalogue::AddRoute(Bus& bus) {
+void Catalogue::AddRoute(const Bus& bus) {
     all_buses_.push_back(bus);
     for (const auto& route_stop : bus.stops) {
         for (auto& stop_ : all_stops_) {
@@ -12,7 +12,7 @@ void Catalogue::AddRoute(Bus& bus) {
     busname_to_bus_[all_buses_.back().number] = &all_buses_.back();
 }
 
-void Catalogue::AddStop(Stop& stop) {
+void Catalogue::AddStop(const Stop& stop) {
     all_stops_.push_back(stop);
     stopname_to_stop_[all_stops_.back().name] = &all_stops_.back();
 }
