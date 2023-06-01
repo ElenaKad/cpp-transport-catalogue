@@ -1,34 +1,53 @@
 #pragma once
 
-/*
- * Здесь можно разместить код наполнения транспортного справочника данными из JSON,
- * а также код обработки запросов к базе и формирование массива ответов в формате JSON
- */
-
-#include "json.h"
 #include "transport_catalogue.h"
 #include "map_renderer.h"
+#include "json.h"
+#include "svg.h"
+#include "json_builder.h"
 
 #include <iostream>
 
+namespace json_reader {
+
+// класс реализующий парсинг входного потока данных
+// транспортного каталога в формате JSON
 class JsonReader {
 public:
-    JsonReader(std::istream& input)
-        : input_(json::Load(input))
-    {}
+    //считывает все данные из входного потока
+    explicit  JsonReader(transport_catalogue::TransportCatalogue &catalogue)
+        : catalogue_(catalogue){}
 
-    const json::Node& GetBaseRequests() const;
-    const json::Node& GetStatRequests() const;
-    const json::Node& GetRenderSettings() const;
+    const std::vector<domain::BusInput> GetBuses()const;
+    const std::vector<domain::StopInput> GetStops()const;
+    const std::map<std::pair<std::string, std::string>, int> GetDistances()const;
+    const renderer::RenderSettings GetRenderSettings()const {return render_settings;}
 
-    void FillCatalogue(transport::Catalogue& catalogue);
-    renderer::MapRenderer FillRenderSettings(const json::Dict& request_map) const;
+    void LoadDocument(std::istream &input);
+    void ReadDocument();
+
+    //печать документа в ноду
+    void PrintDocument(json::Document& document_answer, json::Builder& builder, const std::string& answer_map);
 
 private:
-    json::Document input_;
-    json::Node dummy_ = nullptr;
+    // загрузка данных из json
+    void ParseBase(const json::Node& node_);
+    void ParseStats(const json::Node& node_);
+    void ParseSettings(const json::Node& node_);
+    //получение различных форматов цвета
+    void GetColor(const json::Node& node, svg::Color* color);
+	//печать строки ошибки
+	void ErrorMassage(json::Builder& builder, int id);
 
-    std::tuple<std::string_view, geo::Coordinates, std::map<std::string_view, int>> FillStop(const json::Dict& request_map) const;
-    void FillStopDistances(transport::Catalogue& catalogue) const;
-    std::tuple<std::string_view, std::vector<const transport::Stop*>, bool> FillRoute(const json::Dict& request_map, transport::Catalogue& catalogue) const;
+    //входные параметры
+    std::vector<domain::BusInput> buses_; // маршруты(автобусы)
+    std::vector<domain::StopInput> stops_; // остановки
+    std::vector<domain::query> stats_; // запрос базы
+    std::map<std::pair<std::string, std::string>, int> distances_;// расстояние от остановки до остановки
+
+    json::Document document_ = {};
+
+    renderer::RenderSettings render_settings;
+    transport_catalogue::TransportCatalogue &catalogue_;
 };
+}

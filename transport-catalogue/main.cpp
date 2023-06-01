@@ -1,25 +1,50 @@
-    /*
-     * Примерная структура программы:
-     *
-     * Считать JSON из stdin
-     * Построить на его основе JSON базу данных транспортного справочника
-     * Выполнить запросы к справочнику, находящиеся в массиве "stat_requests", построив JSON-массив
-     * с ответами.
-     * Вывести в stdout ответы в виде JSON
-     */
-#include "json_reader.h"
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <cassert>
+#include <chrono>
+
 #include "request_handler.h"
 
-int main() {
-    transport::Catalogue catalogue;
-    JsonReader json_doc(std::cin);
-    
-    json_doc.FillCatalogue(catalogue);
-    
-    const auto& stat_requests = json_doc.GetStatRequests();
-    const auto& render_settings = json_doc.GetRenderSettings().AsMap();
-    const auto& renderer = json_doc.FillRenderSettings(render_settings);
-    
-    RequestHandler rh(catalogue, renderer);
-    rh.ProcessRequests(stat_requests);
+using namespace std;
+using namespace std::literals;
+
+void read_file()
+{
+    std::ifstream in("s10_final_opentest_1.json");
+    if (in.is_open()) {
+        //файл вывода
+        std::filebuf file;
+        file.open("s10_final_opentest_1_answer_.json", std::ios::out);
+        std::ostream out(&file);
+
+        transport_catalogue::TransportCatalogue transport_;
+        RequestHandler request_handler(transport_, in,out);
+        request_handler.ReadInputDocument();
+        request_handler.AddStops();
+        request_handler.AddDistances();
+        request_handler.AddBuses();
+        //request_handler.RenderMapGlob();
+        request_handler.PrintAnswers();
+        file.close();
+    }
+    in.close();
+}
+
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+	//read_file();
+
+    transport_catalogue::TransportCatalogue transport_;
+    RequestHandler request_handler(transport_,std::cin, std::cout);
+    request_handler.ReadInputDocument();
+    request_handler.AddStops();
+    request_handler.AddDistances();
+    request_handler.AddBuses();
+    //request_handler.RenderMapGlob();
+    request_handler.PrintAnswers();
+
+    return 0;
 }

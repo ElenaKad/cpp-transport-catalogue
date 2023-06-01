@@ -1,167 +1,198 @@
 #include "svg.h"
-
-/*
- * Место для вашей svg-библиотеки
- */
-namespace svg {
+#include <string_view>
 
 using namespace std::literals;
+using namespace std::literals::string_view_literals;
 
-std::ostream& operator<<(std::ostream& out, Color& color) {
-    std::visit(ColorPrinter{ out }, color);
-    return out;
-}
-std::ostream& operator<<(std::ostream& out, StrokeLineCap line_cap) {
-    switch (line_cap) {
-    case StrokeLineCap::BUTT:
-        out << "butt"sv;
-        break;
-    case StrokeLineCap::ROUND:
-        out << "round"sv;
-        break;
-    case StrokeLineCap::SQUARE:
-        out << "square"sv;
-        break;
-    }
-    return out;
-}
+namespace svg {
+	inline std::ostream& operator<<(std::ostream& out, StrokeLineCap stroke_line_cap)
+	{
+		if (stroke_line_cap == StrokeLineCap::BUTT) {
+			out << "butt"sv;
+		}
+		else if (stroke_line_cap == StrokeLineCap::ROUND) {
+			out << "round"sv;
+		}
+		else if (stroke_line_cap == StrokeLineCap::SQUARE) {
+			out << "square"sv;
+		}
+		return out;
+	}
+	inline std::ostream& operator<<(std::ostream& out, StrokeLineJoin stroke_line_join)
+	{
+		if (stroke_line_join == StrokeLineJoin::ARCS) {
+			out << "arcs"sv;
+		}
+		else if (stroke_line_join == StrokeLineJoin::BEVEL) {
+			out << "bevel"sv;
+		}
+		else if (stroke_line_join == StrokeLineJoin::MITER) {
+			out << "miter"sv;
+		}
+		else if (stroke_line_join == StrokeLineJoin::MITER_CLIP) {
+			out << "miter-clip"sv;
+		}
+		else if (stroke_line_join == StrokeLineJoin::ROUND) {
+			out << "round"sv;
+		}
+		return out;
+	}
 
-std::ostream& operator<<(std::ostream& out, StrokeLineJoin line_join) {
-    switch (line_join) {
-    case StrokeLineJoin::ARCS:
-        out << "arcs"sv;
-        break;
-    case StrokeLineJoin::BEVEL:
-        out << "bevel"sv;
-        break;
-    case StrokeLineJoin::MITER:
-        out << "miter"sv;
-        break;
-    case StrokeLineJoin::MITER_CLIP:
-        out << "miter-clip"sv;
-        break;
-    case StrokeLineJoin::ROUND:
-        out << "round"sv;
-        break;
-    }
-    return out;
-}
+	void Object::Render(const RenderContext& context) const {
+		context.RenderIndent();
 
-void Object::Render(const RenderContext& context) const {
-    context.RenderIndent();
+		// Делегируем вывод тега своим подклассам
+		RenderObject(context);
 
-    // Делегируем вывод тега своим подклассам
-    RenderObject(context);
+		context.out << std::endl;
+	}
 
-    context.out << std::endl;
-}
+	// ---------- Circle ------------------
 
-// ---------- Circle ------------------
+	Circle& Circle::SetCenter(Point center) {
+		center_ = center;
+		return *this;
+	}
 
-Circle& Circle::SetCenter(Point center) {
-    center_ = center;
-    return *this;
-}
+	Circle& Circle::SetRadius(double radius) {
+		radius_ = radius;
+		return *this;
+	}
 
-Circle& Circle::SetRadius(double radius) {
-    radius_ = radius;
-    return *this;
-}
+	void Circle::RenderObject(const RenderContext& context) const {
+		auto& out = context.out;
+		out << "<circle cx=\""sv << center_.x << "\" cy=\""sv << center_.y << "\" "sv;
+		out << "r=\""sv << radius_ << "\""sv;
+		// Выводим атрибуты, унаследованные от PathProps
+		RenderAttrs(context.out);
+		out << "/>"sv;
+	}
+	// ---------- Polyline ------------------
 
-void Circle::RenderObject(const RenderContext& context) const {
-    auto& out = context.out;
-    out << "<circle cx=\""sv << center_.x << "\" cy=\""sv << center_.y << "\" "sv;
-    out << "r=\""sv << radius_ << "\""sv;
-    // Выводим атрибуты, унаследованные от PathProps
-    RenderAttrs(context.out);
-    out << "/>"sv;
-}
+	Polyline & Polyline::AddPoint(Point point)
+	{
+		points_.push_back(point);
+		return *this;
+	}
 
-// ---------- Polyline ----------------
+	void Polyline::RenderObject(const RenderContext & context) const
+	{
+		//<polyline points="100,100 150,25 150,75 200,0" fill="none" stroke="black" />
+		auto& out = context.out;
+		out << "<polyline points=\""sv;
+		int count = 0;
+		for (const auto& point : points_)
+		{
+			count++;
+			out << point.x << "," << point.y;
+			if (count != static_cast<int>(points_.size())) {
+				out << " ";
+			}
+		}
+		out << "\"";
+		// Выводим атрибуты, унаследованные от PathProps
+		RenderAttrs(context.out);
+		out << "/>";
+	}
+	// ---------- Text ------------------
+	Text & Text::SetPosition(Point pos)
+	{
+		position_ = pos;
+		return *this;
+	}
 
-Polyline& Polyline::AddPoint(Point point) {
-    points_.push_back(std::move(point));
-    return *this;
-}
+	Text & Text::SetOffset(Point offset)
+	{
+		offset_ = offset;
+		return *this;
+	}
 
-void Polyline::RenderObject(const RenderContext& context) const {
-    auto& out = context.out;
-    out << "<polyline points=\""sv;
-    bool is_first = true;
-    for (auto& point : points_) {
-        if (is_first) {
-            out << point.x << "," << point.y;
-            is_first = false;
-        }
-        else {
-            out << " "sv << point.x << "," << point.y;
-        }
-    }
-    out << "\"";
-    // Выводим атрибуты, унаследованные от PathProps
-    RenderAttrs(context.out);
-    out << "/>"sv;
-}
+	Text & Text::SetFontSize(uint32_t size)
+	{
+		font_size_ = size;
+		return *this;
+	}
 
-// ---------- Text --------------------
+	Text & Text::SetFontFamily(std::string font_family)
+	{
+		font_family_ = font_family;
+		return *this;
+	}
 
-Text& Text::SetPosition(Point pos) {
-    pos_ = pos;
-    return *this;
-}
+	Text & Text::SetFontWeight(std::string font_weight)
+	{
+		font_weight_ = font_weight;
+		return *this;
+	}
 
-Text& Text::SetOffset(Point offset) {
-    offset_ = offset;
-    return *this;
-}
+	Text & Text::SetData(std::string data)
+	{
+		data_ = data;
+		ParsingStringData(data_);
+		//std::cout << data_ << std::endl;
+		return *this;
+	}
 
-Text& Text::SetFontSize(uint32_t size) {
-    size_ = size;
-    return *this;
-}
+	void Text::RenderObject(const RenderContext & context) const
+	{
+		auto& out = context.out;
+		out << "<text";
+		// Выводим атрибуты, унаследованные от PathProps
+		RenderAttrs(context.out);
+        //
+		out << " x=\"" << position_.x << "\" y=\"" << position_.y 
+			<< "\" dx=\"" << offset_.x<< "\" dy=\"" << offset_.y
+			<< "\" font-size=\"" << font_size_ << "\"";
 
-Text& Text::SetFontFamily(std::string font_family) {
-    font_family_ = std::move(font_family);
-    return *this;
-}
+		if (font_family_ != "")
+			out << " font-family=\"" << font_family_ << "\"";
 
-Text& Text::SetFontWeight(std::string font_weight) {
-    font_weight_ = std::move(font_weight);
-    return *this;
-}
+		if (font_weight_ != "")
+			out << " font-weight=\"" << font_weight_ << "\"";
+	
+		out << ">" << data_ << "</text>";
+	}
 
-Text& Text::SetData(std::string data) {
-    data_ = std::move(data);
-    return *this;
-}
+	void Text::ParsingStringData(std::string& data) const {
+		size_t pos = 0;
+		while ((pos = data.find('&', pos + 1)) != data.npos) {
+			data.insert(pos + 1, "&amp;");
+			data.erase(pos, 1);
+		}
 
-void Text::RenderObject(const RenderContext& context) const {
-    auto& out = context.out;
-    out << "<text";
-    // Выводим атрибуты, унаследованные от PathProps
-    RenderAttrs(context.out);
-    out << " x=\""sv << pos_.x << "\" y=\""sv << pos_.y << "\" "sv;
-    out << "dx=\""sv << offset_.x << "\" dy=\""sv << offset_.y << "\" "sv;
-    out << "font-size=\""sv << size_ << "\""sv;
-    if (!font_family_.empty()) out << " font-family=\""sv << font_family_ << "\" "sv;
-    if (!font_weight_.empty()) out << "font-weight=\""sv << font_weight_ << "\""sv;
-    out << ">"sv << data_ << "</text>"sv;
-}
+		while ((pos = data.find_first_of(R"("'<>)")) != data.npos) {
+			switch (data[pos])
+			{
+			case ('\"'):
+				data.insert(pos + 1, "&quot;");
+				break;
 
-// ---------- Document ----------------
+			case ('\''):
+				data.insert(pos + 1, "&apos;");
+				break;
 
-void Document::AddPtr(std::unique_ptr<Object>&& obj) {
-    objects_.emplace_back(std::move(obj));
-}
+			case ('<'):
+				data.insert(pos + 1, "&lt;");
+				break;
 
-void Document::Render(std::ostream& out) const {
-    RenderContext ctx(out, 2, 2);
-    out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << std::endl;
-    out << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << std::endl;
-    for (const auto& obj : objects_) {
-        obj->Render(ctx);
-    }
-    out << "</svg>"sv;
-}
-
+			case ('>'):
+				data.insert(pos + 1, "&gt;");
+				break;
+			}
+			data.erase(pos, 1);
+		}
+	}
+	//--------------------Document
+	void Document::Render(std::ostream & out) const
+	{
+		out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"sv; //1
+		out << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n"sv; //2
+		//3...n-1
+		for (const auto& obj : objects_)
+		{
+			RenderContext rc(out, 2, 2);
+			obj->Render(rc);
+		}
+        out << "</svg>"sv; //n
+	}
 }  // namespace svg
