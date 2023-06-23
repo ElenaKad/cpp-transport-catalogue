@@ -73,7 +73,6 @@ namespace transport_catalogue {
 		const std::deque<domain::Bus>& GetBuses() const;
 		const std::deque<domain::Stop>& GetStops() const ;
 
-		// добавлено на 13 спринт
 		void AddRouteSettings(const domain::RouteSettings route_settings);
 		double GetWaitTime();
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> GetstopsDistanceTime();
@@ -86,8 +85,8 @@ namespace transport_catalogue {
 
 
 	private:
-		double bus_wait_time_ = 6;  // добавлено на 13 спринт
-		double bus_velocity_ = 40; // добавлено на 13 спринт
+		double bus_wait_time_ = 6;  
+		double bus_velocity_ = 40; 
 		std::deque<domain::Bus> buses_;
 		std::deque<domain::Stop> stops_;
 		
@@ -97,7 +96,7 @@ namespace transport_catalogue {
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairOfStopPointerUsingString> stops_distance_;
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> stops_distance_time_;
 
-		// добавоено на 13 спринт 
+		
 
 	};
 }

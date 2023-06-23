@@ -19,9 +19,9 @@ namespace transport_catalogue {
 			}
 		}
 		bptr.bus_name = b.bus_name;
-		bptr.type = b.type;  // sv
+		bptr.type = b.type;  
 		bptr.stops = stops_ptr;
-		buses_.push_back(bptr); //move
+		buses_.push_back(bptr); 
 		Bus* bptr_bus = &buses_.back();
 		bus_name_to_bus_.emplace(b.bus_name, bptr_bus);
 		for (auto el : stops_ptr) {
@@ -153,7 +153,6 @@ namespace transport_catalogue {
 	const std::deque<Stop>& TransportCatalogue::GetStops() const { return stops_; }
 
 
-	// добавлено на 13 спринт
 	// заполнить скорость и время ожидания 
 	void TransportCatalogue::AddRouteSettings(const domain::RouteSettings route_settings) {
 		bus_wait_time_ = route_settings.bus_wait_time;

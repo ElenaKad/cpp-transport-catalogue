@@ -5,12 +5,6 @@
 #include "json_reader.h"
 #include "json_builder.h"
 
-//#include "graph.h"
-//include "router.h"
-//#include "transport_router.h"
-//#include "transport_router.h"
-
-
 using namespace json;
 using namespace std;
 using namespace domain;
@@ -51,7 +45,6 @@ namespace transport_catalogue {
 	InputReaderJson::InputReaderJson(istream& is) : is_(is), load_(json::Load(is)) {
 
 	}
-
 
 	void InputReaderJson::ReadInputJsonBaseRequest() {
 		const auto& json_array = ((load_.GetRoot()).AsDict()).at("base_requests"s);
@@ -189,8 +182,6 @@ namespace transport_catalogue {
 
 	}
 
-
-
 	void InputReaderJson::ReadInputJsonRouteSettings() {
 		const auto& json_array_out = ((load_.GetRoot()).AsDict()).at("routing_settings"s);
 		const auto& json_obj = json_array_out.AsDict();
@@ -224,14 +215,9 @@ namespace transport_catalogue {
 		}
 	}
 
-	/*graph::ActivityProcessor<Weight>& actprocess )*/
-
-
-
 	RenderData InputReaderJson::GetRenderData() {
 		return render_data_;
 	}
-
 
 	void InputReaderJson::UpdRouteSettings(TransportCatalogue& tc) {
 

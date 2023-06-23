@@ -36,7 +36,6 @@ namespace domain {
 
 	struct Bus {
 		std::string bus_name;
-		//std::deque<std::string*> stops;
 		std::deque<std::string_view> stops;
 		std::string type;
 	};

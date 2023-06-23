@@ -1,6 +1,6 @@
 #pragma once
 
-#include "svg.h" // Объявления классов библиотеки должны быть расположены в файле svg.h
+#include "svg.h" 
 #include "transport_catalogue.h"
 #include "domain.h"
 
@@ -8,9 +8,6 @@
 #include "svg.h"
 #include "json.h"
 #include <algorithm>
-//#include "json_builder.h"
-
-
 
 namespace transport_catalogue {
     struct RenderData {

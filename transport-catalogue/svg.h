@@ -59,10 +59,6 @@ namespace svg {
 		double y = 0;
 	};
 
-	/*
-	 * Вспомогательная структура, хранящая контекст для вывода SVG-документа с отступами.
-	 * Хранит ссылку на поток вывода, текущее значение и шаг отступа при выводе элемента
-	 */
 	struct RenderContext {
 		RenderContext(std::ostream& out)
 			: out(out) {
@@ -89,11 +85,6 @@ namespace svg {
 		int indent = 0;
 	};
 
-	/*
-	 * Абстрактный базовый класс Object служит для унифицированного хранения
-	 * конкретных тегов SVG-документа
-	 * Реализует паттерн "Шаблонный метод" для вывода содержимого тега
-	 */
 	class Object {
 	public:
 		void Render(const RenderContext& context) const;
@@ -125,10 +116,10 @@ namespace svg {
 	struct ColorPrinter {
 		std::ostream& os;
 		void operator()(std::monostate) const {
-			os << std::string("none") /*<< std::endl*/;
+			os << std::string("none") ;
 		}
 		void operator()(const std::string& s) const {
-			os << s /*<< std::endl*/;
+			os << s ;
 		}
 		void operator()(const Rgb& r) const {
 			os << "rgb(" << static_cast<unsigned int>(r.red) << "," << static_cast<unsigned int>(r.green) << "," << static_cast<unsigned int>(r.blue) << ")" /*<< std::endl*/;

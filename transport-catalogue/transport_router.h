@@ -22,7 +22,7 @@ namespace graph {
 		double time;
 	};
 
-	struct DestinatioInfo { // такое название потому что RouteInfo уже используется в router 
+	struct DestinatioInfo { 
 		std::vector<std::variant<BusActivity, WaitingActivity>> route;
 		double all_time=0.0;
 	};

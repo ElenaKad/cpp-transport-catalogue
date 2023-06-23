@@ -61,22 +61,6 @@ namespace transport_catalogue {
 
     }
 
-    /*
-    deque<string_view> GetStopsForNonRounTtip(const deque<string_view>& stops) {
-        deque<string_view> reverse_stops;
-        if (!stops.empty()) {
-            auto it = stops.rbegin() + 1;
-            while (it != stops.rend()) {
-                reverse_stops.push_back(*it);
-                ++it;
-            }
-            reverse_stops.insert(reverse_stops.end(), stops.begin(), stops.end());
-        }
-        return reverse_stops;
-    }
-*/
-
-
     vector<geo::Coordinates> GetAllCoordinates(const TransportCatalogue& rtotc, const std::deque<Bus>& buses) {
         vector<geo::Coordinates> geo_coords;
         for (const auto& bus : buses) {
@@ -104,13 +88,8 @@ namespace transport_catalogue {
     }
 
     MapRenderer::MapRenderer(const RenderData& render_data)
-        :render_data_(render_data)
-    {
-
+        :render_data_(render_data){
     }
-
-
-
 
     std::string MapRenderer::DrawRouteGetDoc(const TransportCatalogue& tc) {
 
@@ -175,7 +154,6 @@ namespace transport_catalogue {
 
             }
 
-
             for (int i = 0; i < static_cast<int>(current_stops.size()); i++) {
                 const Stop* one = tc.FindStop(current_stops[i]);
                 const svg::Point screen_coord = proj_one(one->coordinates);
@@ -217,8 +195,6 @@ namespace transport_catalogue {
                 routes_text.push_back(route_font_not_same);
                 routes_text.push_back(route_not_same);
 
-
-
             }
 
             svg::Document  doc;
@@ -229,7 +205,6 @@ namespace transport_catalogue {
 
 
         }
-
 
         // обработка остановок и текста к ним 
         for (auto i = stops_for_route.begin(); i != stops_for_route.end(); ++i)
@@ -243,8 +218,6 @@ namespace transport_catalogue {
             c.SetRadius(render_data_.stop_radius).SetCenter({ screen_coord.x, screen_coord.y });
             c.SetFillColor("white");
             stops_circles.push_back(c);
-
-
 
             Text stop_description_font;
             Text stop_description;
@@ -262,7 +235,6 @@ namespace transport_catalogue {
 
         }
 
-
         svg::Document  doc;
         for (auto&& polyline : routes_vec) {
             doc.Add(std::move(polyline));
@@ -271,8 +243,6 @@ namespace transport_catalogue {
         for (auto&& text : routes_text) {
             doc.Add(std::move(text));
         }
-
-
 
         for (auto&& c : stops_circles) {
             doc.Add(std::move(c));
