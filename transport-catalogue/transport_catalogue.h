@@ -1,75 +1,103 @@
 #pragma once
-#include <map>
-#include <set>
-#include <vector>
-#include <deque>
-#include <unordered_map>
-#include <unordered_set>
-#include <iomanip>
-#include <string>
-#include <string_view>
-#include <optional>
-#include <iostream>
 
 #include "domain.h"
 
+#include <string>
+#include <unordered_set>
+#include "geo.h"
+#include <functional> 
+#include "set"
+#include "deque"
+
 namespace transport_catalogue {
+	struct OutputRequest {
+		int id;
+		std::string type;
+		std::string name;
 
-	//Класс транспортного справочника
-	class TransportCatalogue
-	{
+		std::string from;
+		std::string to;
+
+
+
+
+	};
+
+	struct StopComparer {
+		bool operator()(const domain::Stop& lhs, const domain::Stop& rhs) const {
+			return lhs.stop_name < rhs.stop_name;
+		}
+	};
+
+	struct StopPointerComparer {
+		bool operator()(const domain::Stop* lhs, const domain::Stop* rhs) const {
+			return lhs->stop_name < rhs->stop_name;
+		}
+	};
+
+
+	namespace detail {
+		struct PairOfStopPointerUsingString {
+			std::size_t operator()(const std::pair<const  domain::Stop*, const  domain::Stop*>& p) const {
+				const std::size_t constantal = 31;
+				std::size_t hash_value_one = 0;
+				std::size_t hash_value_two = 0;
+				std::size_t p_pow = 1;
+				for (char c : p.first->stop_name) {
+					hash_value_one = (hash_value_one + (c - 'a' + 1) * p_pow) % std::size_t(-1);
+					p_pow = (p_pow * constantal) % std::size_t(-1);
+				}
+
+				for (char c : p.second->stop_name) {
+					hash_value_one = (hash_value_two + (c - 'a' + 1) * p_pow) % std::size_t(-1);
+					p_pow = (p_pow * constantal) % std::size_t(-1);
+				}
+
+				return hash_value_one + hash_value_two * constantal;
+			}
+		};
+	}
+
+
+	class TransportCatalogue {
 	public:
-		TransportCatalogue() {}
-		~TransportCatalogue() {}
+		void AddBus(const domain::BusDescription& bus);
+		void AddStop(domain::Stop stop);
+		const domain::Bus* FindBus(std::string_view bus) const;
+		virtual const domain::Stop* FindStop(std::string_view stop) const;
+		domain::AllBusInfoBusResponse GetAllBusInfo(std::string_view bus) const;
+		std::set<std::string> GetStopInfo(std::string_view s) const;
+		void AddStopDistance(domain::StopDistancesDescription distance);
+		int GetStopDistance(const domain::Stop& s1, const domain::Stop& s2)  const;
 
-		//добавление остановки в базу
-        void AddStop(std::string_view stop_name, geo::Coordinates coordinate) noexcept;
+		const std::deque<domain::Bus>& GetBuses() const;
+		const std::deque<domain::Stop>& GetStops() const ;
 
-		//добавление маршрута в базу
-        void AddBus(std::string_view route_name,const std::vector<std::string>& stops, const bool& ring);
+		// добавлено на 13 спринт
+		void AddRouteSettings(const domain::RouteSettings route_settings);
+		double GetWaitTime();
+		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> GetstopsDistanceTime();
+		
 
-		//получение всех автобусов на остановке
-        std::optional <std::set<std::string_view>> GetBusesOnStop(std::string_view stop) const;
 
-		//задание дистанции между остановками
-        void SetDistance(std::string_view stop_from,std::string_view stop_to, int distance) noexcept;
+		double GetVelocity();
+		size_t GetStopsQuantity();
+		
 
-		//получение дистанции между остановками
-        int GetDistance(std::string_view stop_from, std::string_view stop_to) const;
-		double CalculateCurvature(std::string_view name) const;
-
-		//получение инф о автобусе и остановке
-        std::optional<const domain::Bus*> GetBusInfo(std::string_view name) const;
-        std::optional<const domain::Stop*> GetStopInfo(std::string_view name) const;
-
-		auto begin() const { return sorted_buses_.begin(); }
-		auto end() const { return sorted_buses_.end(); }
-		size_t size() const { return sorted_buses_.size(); }
-		size_t empty() const { return sorted_buses_.empty(); }
 
 	private:
+		double bus_wait_time_ = 6;  // добавлено на 13 спринт
+		double bus_velocity_ = 40; // добавлено на 13 спринт
+		std::deque<domain::Bus> buses_;
+		std::deque<domain::Stop> stops_;
+		
+		std::unordered_map<std::string_view, domain::Stop*> stop_name_to_stop_;
+		std::unordered_map<std::string_view, domain::Bus*> bus_name_to_bus_;
+		std::unordered_map<std::string_view, std::set<std::string>> stop_info_;
+		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairOfStopPointerUsingString> stops_distance_;
+		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> stops_distance_time_;
 
-		int CalculateAllDistance(std::string_view route_name) const;
-		//поиск остановки по имени
-        domain::Stop* FindStop(std::string_view stop_name) const;
-		//поиск маршрута по имени
-        domain::Bus* FindBus(std::string_view stop_name) const;
+		// добавоено на 13 спринт 
 
-		//---контейнеры---//
-		//Stops - остановки
-        std::unordered_map<std::string_view, domain::Stop*, std::hash<std::string_view>> stops_to_stop_; //словарь, хеш-таблица
-		std::deque<domain::Stop> stops_;// набор остановок
-
-		//Buses - маршруты
-        std::unordered_map<std::string_view, domain::Bus*, std::hash<std::string_view>> buses_to_bus_; //словарь, хеш-таблица
-		std::deque<domain::Bus> buses_; // набор маршрутов
-
-		// автобусы на каждой остановке
-		std::unordered_map<std::string_view, std::set<std::string_view>, std::hash<std::string_view>> buses_on_stops_;
-
-		//контейнер длин
-		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, domain::Hasher> distances_;
-		//сортированные автобусы
-		std::vector<std::string_view> sorted_buses_;
 	};
 }

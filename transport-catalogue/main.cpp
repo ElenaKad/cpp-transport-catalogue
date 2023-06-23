@@ -1,50 +1,74 @@
-#include <string>
-#include <iostream>
-#include <sstream>
+#define _CRT_SECURE_NO_WARNINGS
+#include "geo.h"
+#include "transport_catalogue.h"
+#include "json_reader.h"
+#include "iostream"
+#include "map_renderer.h"
+#include "request_handler.h"
 #include <fstream>
-#include <cassert>
+using namespace transport_catalogue;
+using namespace std;
 #include <chrono>
 
-#include "request_handler.h"
+//#include "graph.h"
+//#include "router.h"
 
-using namespace std;
-using namespace std::literals;
+#include "transport_router.h"
 
-void read_file()
-{
-    std::ifstream in("s10_final_opentest_1.json");
-    if (in.is_open()) {
-        //файл вывода
-        std::filebuf file;
-        file.open("s10_final_opentest_1_answer_.json", std::ios::out);
-        std::ostream out(&file);
 
-        transport_catalogue::TransportCatalogue transport_;
-        RequestHandler request_handler(transport_, in,out);
-        request_handler.ReadInputDocument();
-        request_handler.AddStops();
-        request_handler.AddDistances();
-        request_handler.AddBuses();
-        //request_handler.RenderMapGlob();
-        request_handler.PrintAnswers();
-        file.close();
-    }
-    in.close();
-}
+int main() {
+#ifdef _DEBUG
+	//if (freopen("input.txt.txt", "r", stdin) == nullptr) {
+	if (freopen("input_2.txt.txt", "r", stdin) == nullptr) {
+	//if (freopen("input_22.txt.txt", "r", stdin) == nullptr) {
+	//if (freopen("input_3.txt.txt", "r", stdin) == nullptr) {
+	//if (freopen("input_4.txt.txt", "r", stdin) == nullptr) {
+		puts("can't open input.txt.txt");
+		return 1;
+	}
+#endif 
 
-int main()
-{
-    setlocale(LC_ALL, "Russian");
-	//read_file();
+	transport_catalogue::TransportCatalogue tc;
+	transport_catalogue::InputReaderJson reader(std::cin);
+	(void)reader.ReadInputJsonRequest();
 
-    transport_catalogue::TransportCatalogue transport_;
-    RequestHandler request_handler(transport_,std::cin, std::cout);
-    request_handler.ReadInputDocument();
-    request_handler.AddStops();
-    request_handler.AddDistances();
-    request_handler.AddBuses();
-    //request_handler.RenderMapGlob();
-    request_handler.PrintAnswers();
+	reader.UpdStop(tc);
+	reader.UpdBus(tc);
+	reader.UpdStopDist(tc);
+	reader.UpdRouteSettings(tc);
+	RenderData rd = reader.GetRenderData();
+	MapRenderer mapdrawer(rd);
 
-    return 0;
+	//создаю объекты классов граф и роутер и заполняю данными 
+	/*std::set<domain::Stop*, transport_catalogue::StopPointerComparer> stop_set = tc.GetStopSet(); // получаю количество остановок
+	graph::DirectedWeightedGraph<double> graph(stop_set.size()*2); // создаю граф с 2 вершинами
+	graph::ActivityProcessor activityprocessor(graph, tc);*/
+
+
+	////////////******************
+
+
+
+
+	////////////////******************
+
+	//graph::ActivityProcessor activityprocessor(tc);
+
+	//graph::Router<double> router = activityprocessor.ProcessRoute();
+
+
+	//reader.ManageOutputRequests(tc, mapdrawer, activityprocessor, router);
+
+	
+	graph::ActivityProcessor activityprocessor(tc);
+
+	reader.ManageOutputRequests(tc, mapdrawer, activityprocessor);
+    //activityprocessor.FreeMemory();
+
+	//reader.ManageOutputRequests(tc, mapdrawer);
+
+
+	return 0;
+
+
 }

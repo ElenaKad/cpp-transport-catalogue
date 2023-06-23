@@ -1,91 +1,96 @@
 #pragma once
-
+#include <vector>
+#include <optional>
 #include "json.h"
-
-#include <deque>
 
 namespace json {
 
-	class Builder 
-	{
-	public:
-		class BaseBuilder;
-		class KeyItemContext;
-		class KeyValueItemContext;
-		class DictItemContext;
-		class ArrayItemContext;
+    class Builder {
+    public:
+        class BaseContext;
+        class DictValueContext;
+        class DictItemContext;
+        class ArrayItemContext;
 
-		Builder() = default;
+    public:
+        class BaseContext {
+        public:
+            explicit BaseContext(Builder * builder) { builder_ = builder; }
 
-		Node Build();
+            Node Build();
 
-		KeyItemContext Key(std::string key);
-		Builder& Value(Node value);
+            BaseContext Value(const json::Node & value);
 
-		DictItemContext StartDict();
-		Builder& EndDict();
+            DictValueContext Key(const std::string & key);
 
-		ArrayItemContext StartArray();
-		Builder& EndArray();
+            DictItemContext StartDict();
+            BaseContext EndDict();
+            ArrayItemContext StartArray();
+            BaseContext EndArray();
 
-	private:
-		bool AddNewNode(Node node);
+        protected:
+            Builder * builder_;
+        };
 
-		Node root_;  //сам конструируемый объект
-		std::deque<Node*> nodes_stack_; //стек указателей на те вершины JSON
 
-		struct KeyFlag {
-			std::string value;
-			bool flag = false;
-		};
-		KeyFlag key_; // ключ для словаря
-	};
-	//
+        class DictValueContext: public BaseContext {
+        public:
+            explicit DictValueContext(Builder * builder): BaseContext(builder) {}
 
-	class Builder::BaseBuilder {
-	public:
-		BaseBuilder(Builder &builder) : builder_{ builder } {}
-	protected:
-		KeyItemContext Key(std::string key);
+            Node Build() = delete;
 
-		DictItemContext StartDict();
-		Builder& EndDict();
+            DictItemContext Value(const json::Node & value);
 
-		ArrayItemContext StartArray();
-		Builder& EndArray();
+            DictValueContext Key(const std::string & key) = delete;
+            BaseContext EndArray() = delete;
+            BaseContext EndDict() = delete;
+        };
 
-		Builder& builder_;
-	};
 
-	class Builder::KeyValueItemContext final : public BaseBuilder{
-	public:
-		using BaseBuilder::BaseBuilder;
-		using BaseBuilder::Key;
-		using BaseBuilder::EndDict;
+        class DictItemContext: public BaseContext {
+        public:
+            explicit DictItemContext(Builder * builder): BaseContext(builder) {}
 
-	};
+            Node Build() = delete;
 
-	class Builder::KeyItemContext final : public BaseBuilder{
-	public:
-		using BaseBuilder::BaseBuilder;
-		KeyValueItemContext Value(Node value);
-		using BaseBuilder::StartDict;
-		using BaseBuilder::StartArray;
-	};
+            BaseContext Value(const json::Node & value) = delete;
+            DictItemContext &StartDict() = delete;
+            ArrayItemContext &StartArray() = delete;
+            BaseContext EndArray() = delete;
+        };
 
-	class Builder::DictItemContext final : public BaseBuilder{
-	public:
-		using BaseBuilder::BaseBuilder;
-		using BaseBuilder::Key;
-		using BaseBuilder::EndDict;
-	};
 
-	class Builder::ArrayItemContext final : public BaseBuilder{
-	public:
-		using BaseBuilder::BaseBuilder;
-		ArrayItemContext Value(Node value);
-		using BaseBuilder::StartDict;
-		using BaseBuilder::StartArray;
-		using BaseBuilder::EndArray;
-	};
+        class ArrayItemContext: public BaseContext {
+        public:
+            explicit ArrayItemContext(Builder * builder): BaseContext(builder) {}
+
+            Node Build() = delete;
+
+            ArrayItemContext Value(const json::Node & value);
+
+            DictValueContext Key(const std::string & key) = delete;
+            BaseContext EndDict() = delete;
+        };
+    public:
+        Builder();
+
+        Node Build() const;
+
+        BaseContext Value(const json::Node & value);
+        DictValueContext Key(const std::string & key);
+        DictItemContext StartDict();
+        BaseContext EndDict();
+        ArrayItemContext StartArray();
+        BaseContext EndArray();
+
+    private:
+        void start_container(Node && container);
+        bool on_top() const;
+        bool in_array() const;
+        bool in_dict() const;
+
+        Node root_;
+        std::vector<Node *> nodes_stack_;
+        std::optional<std::string> current_key_;
+    };
 }

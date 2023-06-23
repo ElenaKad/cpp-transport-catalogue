@@ -1,233 +1,242 @@
+#include "transport_catalogue.h"
+#include "json.h"
+#include "geo.h"
+#include "svg.h"
 #include "json_reader.h"
-#include <sstream>
+#include "json_builder.h"
 
-using namespace json_reader;
+//#include "graph.h"
+//include "router.h"
+//#include "transport_router.h"
+//#include "transport_router.h"
 
-const std::vector<domain::BusInput> JsonReader::GetBuses() const
-{
-    return buses_;
-}
 
-const std::vector<domain::StopInput> JsonReader::GetStops() const
-{
-    return stops_;
-}
+using namespace json;
+using namespace std;
+using namespace domain;
+using namespace svg;
 
-const std::map<std::pair<std::string, std::string>, int> JsonReader::GetDistances() const
-{
-    return distances_;
-}
+namespace transport_catalogue {
 
-void JsonReader::LoadDocument(std::istream &input)
-{
-    document_ = json::Load(input);
-}
+	svg::Color GetColor(const json::Node& el) {
+		svg::Color color;
 
-void JsonReader::ReadDocument()
-{
-    if (document_.GetRoot().IsNull())
-        return;
-
-    auto& it = document_.GetRoot().AsMap();
-
-    if (it.count("base_requests"s))
-    {
-        ParseBase(it.at("base_requests"s));
-    }
-    if (it.count("stat_requests"s) && it.at("stat_requests"s).IsArray())
-    {
-        ParseStats(it.at("stat_requests"s));
-    }
-    if (it.count("render_settings"s))
-    {
-        ParseSettings(it.at("render_settings"s));
-    }
-}
-
-void JsonReader::PrintDocument(json::Document& document_answer,
-	                           json::Builder& builder,
-                               const std::string& answer_map)
-{
-	builder.StartArray();
-
-    for (const auto& stat : stats_) {
-        if (stat.type == "Stop")
-        {
-            std::optional<std::set<std::string_view>> info = catalogue_.GetBusesOnStop(stat.name);
-            if (!info)
-            {
-				ErrorMassage(builder, stat.id);
-            }
-            else {
-				builder.StartDict().Key("buses"s).StartArray();
-				for (const auto& value : *info)
-                {
-					builder.Value(std::string(value));
-                }
-				builder.EndArray();
-				//
-				builder.Key("request_id"s).Value(stat.id).EndDict();
-            }
-        }
-        else if (stat.type == "Bus")
-        {
-            std::optional<const domain::Bus*> info = catalogue_.GetBusInfo(stat.name);
-            if (!info)
-            {
-				ErrorMassage(builder, stat.id);
-            }
-            else {
-				builder.StartDict()
-					.Key("curvature"s).Value((*info)->curvature)
-					.Key("request_id"s).Value(stat.id)
-					.Key("route_length"s).Value((*info)->distance)
-					.Key("stop_count"s).Value((*info)->number_stops)
-					.Key("unique_stop_count"s).Value((*info)->unique_stops)
-				    .EndDict();
+		if (el.IsString()) {
+			color = el.AsString();
+		}
+		else {
+			if (el.AsArray().size() == 3) {
+				Rgb rgb;
+				rgb.red = static_cast<uint8_t>(el.AsArray()[0].AsInt());
+				rgb.green = static_cast<uint8_t>(el.AsArray()[1].AsInt());
+				rgb.blue = static_cast<uint8_t>(el.AsArray()[2].AsInt());
+				color = rgb;
 			}
-        } else if (stat.type == "Map")
-        {
-			builder.StartDict()
-				.Key("request_id"s).Value(stat.id)
-				.Key("map"s).Value(answer_map)
-				.EndDict();
-        }
-    }
-	builder.EndArray();
-    document_answer = builder.Build();
-}
+			else if (el.AsArray().size() == 4) {
+				Rgba rgba;
+				rgba.red = static_cast<uint8_t>(el.AsArray()[0].AsInt());
+				rgba.green = static_cast<uint8_t>(el.AsArray()[1].AsInt());
+				rgba.blue = static_cast<uint8_t>(el.AsArray()[2].AsInt());
+				rgba.opacity = el.AsArray()[3].AsDouble();
+				color = rgba;
+			}
+		}
 
-void JsonReader::ErrorMassage(json::Builder& builder, int id)
-{
-	builder.StartDict()
-		.Key("request_id"s).Value(id)
-		.Key("error_message"s).Value("not found"s)
-		.EndDict();
-}
 
-void JsonReader::ParseBase(const json::Node& node_)
-{
-    auto& nodes = node_.AsArray();
-    for (auto& node : nodes) {
-        auto& tag = node.AsMap();
-        if (tag.at("type"s).AsString() == "Stop"s)
-        {
-            const auto name_ = tag.at("name"s).AsString();
-            double lat = tag.at("latitude"s).AsDouble();
-            double lng = tag.at("longitude"s).AsDouble();
-            stops_.push_back({ name_, lat, lng });
+		return color;
 
-            //дистанция
-            if (tag.count("road_distances"s)) {
-                auto& distances = tag.at("road_distances"s).AsMap();
-                for (const auto&[name, value] : distances) {
-                    distances_[{name_, name}] = value.AsInt();
-                }
-            }
-        }
-        else if (tag.at("type"s).AsString() == "Bus"s)
-        {
-            const auto name = tag.at("name"s).AsString();
-            const auto round = tag.at("is_roundtrip"s).AsBool();
-            auto& it = tag.at("stops"s).AsArray();
+	}
 
-            std::vector<std::string> stops_;
-            stops_.reserve(it.size());
 
-            for (const auto &stop : it) {
-                if (stop.IsString()) {
-                    stops_.push_back(stop.AsString());
-                }
-            }
-            buses_.push_back({ name,stops_,round });
-        }
-        else {
-            throw std::invalid_argument("Unknown type"s);
-        }
-    }
-}
+	InputReaderJson::InputReaderJson(istream& is) : is_(is), load_(json::Load(is)) {
 
-void JsonReader::ParseStats(const json::Node& node_)
-{
-    auto& nodes = node_.AsArray();
-    for (auto& node : nodes) {
-        const auto& tag = node.AsMap();
-        const auto& type = tag.at("type"s).AsString();
-        //{id,type,name}
-        if (type == "Stop"s || type == "Bus"s)
-        {
-            stats_.push_back({ tag.at("id"s).AsInt(),type,tag.at("name"s).AsString() });
-        }
-        else if (type == "Map"s)
-        {
-            //{ "id": 1, "type": "Map" },
-            stats_.push_back({ tag.at("id"s).AsInt(), type, type });
-        }
-        else {
-            throw std::invalid_argument("Unknown type"s);
-        }
-    }
-}
+	}
 
-void JsonReader::ParseSettings(const json::Node& node_)
-{
-    auto& settings = node_.AsMap();
 
-    if (settings.count("width"s)) {
-        render_settings.width = settings.at("width"s).AsDouble();
-    }
-    if (settings.count("height"s)) {
-        render_settings.height = settings.at("height"s).AsDouble();
-    }
-    if (settings.count("padding"s)) {
-        render_settings.padding = settings.at("padding"s).AsDouble();
-    }
-    if (settings.count("line_width"s)) {
-        render_settings.line_width = settings.at("line_width"s).AsDouble();
-    }
-    if (settings.count("stop_radius"s)) {
-        render_settings.stop_radius = settings.at("stop_radius"s).AsDouble();
-    }
-    if (settings.count("bus_label_font_size"s)) {
-        render_settings.bus_label_font_size = settings.at("bus_label_font_size"s).AsDouble();
-    }
-    if (settings.count("bus_label_offset"s)) {
-        auto it = settings.at("bus_label_offset"s).AsArray();
-        render_settings.bus_label_offset = { it[0].AsDouble(), it[1].AsDouble() };
-    }
-    if (settings.count("stop_label_font_size"s)) {
-        render_settings.stop_label_font_size = settings.at("stop_label_font_size"s).AsDouble();
-    }
-    if (settings.count("stop_label_offset"s)) {
-        auto it = settings.at("stop_label_offset"s).AsArray();
-        render_settings.stop_label_offset = { it[0].AsDouble(), it[1].AsDouble() };
-    }
+	void InputReaderJson::ReadInputJsonBaseRequest() {
+		const auto& json_array = ((load_.GetRoot()).AsDict()).at("base_requests"s);
+		for (const auto& file : json_array.AsArray()) {
+			const auto& json_obj = file.AsDict();
+			if (json_obj.at("type"s) == "Stop"s) {
+				Stop stopjson;
+				stopjson.stop_name = json_obj.at("name").AsString();
+				stopjson.coordinates.lat = json_obj.at("latitude").AsDouble();
+				stopjson.coordinates.lng = json_obj.at("longitude").AsDouble();
 
-    if (settings.count("underlayer_color"s)) {
-        GetColor(settings.at("underlayer_color"s), &render_settings.underlayer_color);
-    }
-    if (settings.count("underlayer_width"s)) {
-        render_settings.underlayer_width = settings.at("underlayer_width"s).AsDouble();
-    }
-    //массив цветов
-    if (settings.count("color_palette"s)) {
-        auto& array = settings.at("color_palette"s).AsArray();
-        render_settings.color_palette.reserve(array.size());
-        for (auto& node : array) {
-            render_settings.color_palette.push_back({});
-            GetColor(node, &render_settings.color_palette.back());
-        }
-    }
-}
+				StopDistancesDescription input_stop_dist;
+				input_stop_dist.stop_name = json_obj.at("name").AsString();
+				auto heighbors = json_obj.at("road_distances");
 
-void JsonReader::GetColor(const json::Node& node, svg::Color* color) {
-    if (node.IsString()) {
-        *color = node.AsString();
-    }
-    else if (node.AsArray().size() == 3) {
-        *color = svg::Rgb({ node.AsArray()[0].AsInt(),node.AsArray()[1].AsInt(),node.AsArray()[2].AsInt() });
-    }
-    else if (node.AsArray().size() == 4) {
-        *color = svg::Rgba({ node.AsArray()[0].AsInt(),node.AsArray()[1].AsInt(),node.AsArray()[2].AsInt(), node.AsArray()[3].AsDouble() });
-    }
+				for (auto el : heighbors.AsDict()) {
+					input_stop_dist.distances.push_back(make_pair(el.first, el.second.AsInt()));
+
+				}
+				upd_req_stop_.push_back(stopjson);
+				distances_.push_back(input_stop_dist);
+			}
+			else if (json_obj.at("type"s) == "Bus"s) {
+				BusDescription bs;
+				auto stop_list = json_obj.at("stops").AsArray();
+				for (auto el : stop_list) {
+
+					bs.stops.push_back(el.AsString());
+
+				}
+				bs.bus_name = json_obj.at("name").AsString();
+
+				auto trip = json_obj.at("is_roundtrip").AsBool();
+				if (trip) {
+					bs.type = "true"s;
+				}
+				else { bs.type = "false"s; }
+
+				upd_req_bus_.push_back(bs);
+
+			}
+		}
+
+	}
+    
+    void InputReaderJson::ReadInputJsonStatRequest() {
+		const auto& json_array_out = ((load_.GetRoot()).AsDict()).at("stat_requests"s);
+		if (!json_array_out.IsNull()) {
+			for (const auto& file : json_array_out.AsArray()) {
+				const auto& json_obj = file.AsDict();
+				OutputRequest outputstopjson;
+				if (json_obj.at("type").AsString() == "Map"s) {
+					outputstopjson.id = json_obj.at("id").AsInt();
+					outputstopjson.type = json_obj.at("type").AsString();
+					out_req_.push_back(outputstopjson);
+
+				} else if (json_obj.at("type").AsString() == "Route"s) {
+					outputstopjson.id = json_obj.at("id").AsInt();
+					outputstopjson.type = json_obj.at("type").AsString();
+					outputstopjson.from = json_obj.at("from").AsString();
+					outputstopjson.to = json_obj.at("to").AsString();
+
+					out_req_.push_back(outputstopjson);
+				} else {
+					outputstopjson.name = json_obj.at("name").AsString();
+					outputstopjson.id = json_obj.at("id").AsInt();
+					outputstopjson.type = json_obj.at("type").AsString();
+					out_req_.push_back(outputstopjson);
+				}
+			}
+		}
+
+	}
+
+
+	void InputReaderJson::ReadInputJsonRenderSettings() {
+
+		const auto& json_array_render = ((load_.GetRoot()).AsDict()).at("render_settings"s).AsDict();
+		if (json_array_render.find("width") != json_array_render.end()) {
+			render_data_.width = json_array_render.find("width")->second.AsDouble();
+		}
+
+		if (json_array_render.find("height") != json_array_render.end()) {
+			render_data_.height = json_array_render.find("height")->second.AsDouble();
+		}
+
+		if (json_array_render.find("padding") != json_array_render.end()) {
+			render_data_.padding = json_array_render.find("padding")->second.AsDouble();
+		}
+
+		if (json_array_render.find("line_width") != json_array_render.end()) {
+			render_data_.line_width = json_array_render.find("line_width")->second.AsDouble();
+		}
+
+		if (json_array_render.find("stop_radius") != json_array_render.end()) {
+			render_data_.stop_radius = json_array_render.find("stop_radius")->second.AsDouble();
+		}
+
+		if (json_array_render.find("bus_label_font_size") != json_array_render.end()) {
+			render_data_.bus_label_font_size = json_array_render.find("bus_label_font_size")->second.AsDouble();
+		}
+
+		if (json_array_render.find("bus_label_offset") != json_array_render.end()) {
+
+			for (auto el : json_array_render.find("bus_label_offset")->second.AsArray()) { render_data_.bus_label_offset.push_back(el.AsDouble()); }
+		}
+
+		if (json_array_render.find("stop_label_offset") != json_array_render.end()) {
+
+			for (auto el : json_array_render.find("stop_label_offset")->second.AsArray()) { render_data_.stop_label_offset.push_back(el.AsDouble()); }
+		}
+
+
+		if (json_array_render.find("stop_label_font_size") != json_array_render.end()) {
+			render_data_.stop_label_font_size = json_array_render.find("stop_label_font_size")->second.AsDouble();
+		}
+
+		if (json_array_render.find("underlayer_color") != json_array_render.end()) {
+
+			render_data_.underlayer_color.push_back(GetColor(json_array_render.find("underlayer_color")->second));
+		}
+
+		if (json_array_render.find("underlayer_width") != json_array_render.end()) {
+			render_data_.underlayer_width = json_array_render.find("underlayer_width")->second.AsDouble();
+		}
+
+		if (json_array_render.find("color_palette") != json_array_render.end()) {
+			for (auto el : json_array_render.find("color_palette")->second.AsArray()) {
+
+				render_data_.color_palette.push_back(GetColor(el));
+
+			}
+
+		}
+
+	}
+
+
+
+	void InputReaderJson::ReadInputJsonRouteSettings() {
+		const auto& json_array_out = ((load_.GetRoot()).AsDict()).at("routing_settings"s);
+		const auto& json_obj = json_array_out.AsDict();
+		route_settings_.bus_velocity = json_obj.at("bus_velocity").AsDouble();
+		route_settings_.bus_wait_time = json_obj.at("bus_wait_time").AsDouble();
+	}
+
+	void InputReaderJson::ReadInputJsonRequest() {
+		ReadInputJsonBaseRequest();
+		ReadInputJsonStatRequest();
+		ReadInputJsonRenderSettings();
+		ReadInputJsonRouteSettings();
+	}
+
+
+	void InputReaderJson::UpdStop(TransportCatalogue& tc) {
+		for (int i = 0; i < static_cast<int>(upd_req_stop_.size()); ++i) {
+			tc.AddStop(upd_req_stop_[i]);
+		}
+	}
+
+	void InputReaderJson::UpdStopDist(TransportCatalogue& tc) {
+		for (int i = 0; i < static_cast<int>(distances_.size()); ++i) {
+			tc.AddStopDistance(distances_[i]);
+		}
+	}
+
+	void InputReaderJson::UpdBus(TransportCatalogue& tc) {
+		for (int i = 0; i < static_cast<int>(upd_req_bus_.size()); ++i) {
+			tc.AddBus(upd_req_bus_[i]);
+		}
+	}
+
+	/*graph::ActivityProcessor<Weight>& actprocess )*/
+
+
+
+	RenderData InputReaderJson::GetRenderData() {
+		return render_data_;
+	}
+
+
+	void InputReaderJson::UpdRouteSettings(TransportCatalogue& tc) {
+
+		tc.AddRouteSettings(route_settings_);
+
+	}
+
 }
