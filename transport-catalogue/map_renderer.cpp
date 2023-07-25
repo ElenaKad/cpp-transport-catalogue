@@ -87,9 +87,12 @@ namespace transport_catalogue {
         }
     }
 
-    MapRenderer::MapRenderer(const RenderData& render_data)
-        :render_data_(render_data){
+    MapRenderer::MapRenderer(const RenderSettings& render_settings)
+        :render_settings_(render_settings)
+    {
+
     }
+
 
     std::string MapRenderer::DrawRouteGetDoc(const TransportCatalogue& tc) {
 
@@ -98,7 +101,7 @@ namespace transport_catalogue {
         vector<svg::Document> docs;
         vector<svg::Polyline> routes_vec;
         vector<svg::Text> routes_text;
-        std::vector<Color> color_palette = render_data_.color_palette;
+        std::vector<Color> color_palette = render_settings_.color_palette_;
         std::deque<Bus> buses = tc.GetBuses();
         std::deque<Stop> stops = tc.GetStops();
         std::sort(buses.begin(), buses.end(),
@@ -108,7 +111,7 @@ namespace transport_catalogue {
         vector<geo::Coordinates> geo_coords = GetAllCoordinates(tc, buses);
 
         const SphereProjector proj_one{
-        geo_coords.begin(), geo_coords.end(), render_data_.width, render_data_.height, render_data_.padding
+        geo_coords.begin(), geo_coords.end(), render_settings_.width_, render_settings_.height_, render_settings_.padding_
         };
 
         std::set<std::string> stops_for_route;
@@ -154,6 +157,7 @@ namespace transport_catalogue {
 
             }
 
+
             for (int i = 0; i < static_cast<int>(current_stops.size()); i++) {
                 const Stop* one = tc.FindStop(current_stops[i]);
                 const svg::Point screen_coord = proj_one(one->coordinates);
@@ -165,11 +169,11 @@ namespace transport_catalogue {
                     Text route_font;
                     Text route;
 
-                    route_font.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_data_.bus_label_offset[0], render_data_.bus_label_offset[1])).SetFontSize(render_data_.bus_label_font_size)\
+                    route_font.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_settings_.bus_label_offset_.first, render_settings_.bus_label_offset_.second)).SetFontSize(render_settings_.bus_label_font_size_)\
                         .SetFontFamily(rout_description.font).SetFontWeight(rout_description.font_weight).SetData(rout_description.text_data)\
-                        .SetFillColor(render_data_.underlayer_color[0]).SetStrokeColor(render_data_.underlayer_color[0]).SetStrokeWidth(render_data_.underlayer_width).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
+                        .SetFillColor(render_settings_.underlayer_color_).SetStrokeColor(render_settings_.underlayer_color_).SetStrokeWidth(render_settings_.underlayer_width_).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
 
-                    route.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_data_.bus_label_offset[0], render_data_.bus_label_offset[1])).SetFontSize(render_data_.bus_label_font_size)\
+                    route.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_settings_.bus_label_offset_.first, render_settings_.bus_label_offset_.second)).SetFontSize(render_settings_.bus_label_font_size_)\
                         .SetFontFamily(rout_description.font).SetFontWeight(rout_description.font_weight).SetData(rout_description.text_data).SetFillColor(rout_description.route_color);
 
                     routes_text.push_back(route_font);
@@ -185,11 +189,11 @@ namespace transport_catalogue {
                 Text route_font_not_same;
                 Text route_not_same;
 
-                route_font_not_same.SetPosition(Point(screen_coord_last.x, screen_coord_last.y)).SetOffset(Point(render_data_.bus_label_offset[0], render_data_.bus_label_offset[1])).SetFontSize(render_data_.bus_label_font_size)\
+                route_font_not_same.SetPosition(Point(screen_coord_last.x, screen_coord_last.y)).SetOffset(Point(render_settings_.bus_label_offset_.first, render_settings_.bus_label_offset_.second)).SetFontSize(render_settings_.bus_label_font_size_)\
                     .SetFontFamily(rout_description.font).SetFontWeight(rout_description.font_weight).SetData(rout_description.text_data)\
-                    .SetFillColor(render_data_.underlayer_color[0]).SetStrokeColor(render_data_.underlayer_color[0]).SetStrokeWidth(render_data_.underlayer_width).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
+                    .SetFillColor(render_settings_.underlayer_color_).SetStrokeColor(render_settings_.underlayer_color_).SetStrokeWidth(render_settings_.underlayer_width_).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
 
-                route_not_same.SetPosition(Point(screen_coord_last.x, screen_coord_last.y)).SetOffset(Point(render_data_.bus_label_offset[0], render_data_.bus_label_offset[1])).SetFontSize(render_data_.bus_label_font_size)\
+                route_not_same.SetPosition(Point(screen_coord_last.x, screen_coord_last.y)).SetOffset(Point(render_settings_.bus_label_offset_.first, render_settings_.bus_label_offset_.second)).SetFontSize(render_settings_.bus_label_font_size_)\
                     .SetFontFamily(rout_description.font).SetFontWeight(rout_description.font_weight).SetData(rout_description.text_data).SetFillColor(rout_description.route_color);
 
                 routes_text.push_back(route_font_not_same);
@@ -199,42 +203,37 @@ namespace transport_catalogue {
 
             svg::Document  doc;
             Polyline polyline = CreatePolyline(point_to_draw);
-            polyline.SetFillColor(NoneColor).SetStrokeColor(current_color).SetStrokeWidth(render_data_.line_width).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
+            polyline.SetFillColor(NoneColor).SetStrokeColor(current_color).SetStrokeWidth(render_settings_.line_width_).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
 
             routes_vec.push_back(polyline);
 
-
         }
+
 
         // обработка остановок и текста к ним 
         for (auto i = stops_for_route.begin(); i != stops_for_route.end(); ++i)
         {
-
             Circle c;
             const Stop* one = tc.FindStop(*i);
             const svg::Point screen_coord = proj_one(one->coordinates);
-
-
-            c.SetRadius(render_data_.stop_radius).SetCenter({ screen_coord.x, screen_coord.y });
+            c.SetRadius(render_settings_.stop_radius_).SetCenter({ screen_coord.x, screen_coord.y });
             c.SetFillColor("white");
             stops_circles.push_back(c);
 
             Text stop_description_font;
             Text stop_description;
 
-            stop_description_font.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_data_.stop_label_offset[0], render_data_.stop_label_offset[1])).SetFontSize(render_data_.stop_label_font_size)\
+            stop_description_font.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_settings_.stop_label_offset_.first, render_settings_.stop_label_offset_.second)).SetFontSize(render_settings_.stop_label_font_size_)\
                 .SetFontFamily("Verdana").SetData(*i)\
-                .SetFillColor(render_data_.underlayer_color[0]).SetStrokeColor(render_data_.underlayer_color[0]).SetStrokeWidth(render_data_.underlayer_width).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
+                .SetFillColor(render_settings_.underlayer_color_).SetStrokeColor(render_settings_.underlayer_color_).SetStrokeWidth(render_settings_.underlayer_width_).SetStrokeLineCap(StrokeLineCap::ROUND).SetStrokeLineJoin(StrokeLineJoin::ROUND);
 
 
-            stop_description.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_data_.stop_label_offset[0], render_data_.stop_label_offset[1])).SetFontSize(render_data_.stop_label_font_size)\
+            stop_description.SetPosition(Point(screen_coord.x, screen_coord.y)).SetOffset(Point(render_settings_.stop_label_offset_.first, render_settings_.stop_label_offset_.second)).SetFontSize(render_settings_.stop_label_font_size_)\
                 .SetFontFamily("Verdana").SetData(*i).SetFillColor("black");
 
             stops_names.push_back(stop_description_font);
             stops_names.push_back(stop_description);
-
         }
-
         svg::Document  doc;
         for (auto&& polyline : routes_vec) {
             doc.Add(std::move(polyline));

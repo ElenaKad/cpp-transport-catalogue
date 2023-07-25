@@ -5,6 +5,9 @@
 #include "json_reader.h"
 #include "json_builder.h"
 
+
+
+
 using namespace json;
 using namespace std;
 using namespace domain;
@@ -21,17 +24,17 @@ namespace transport_catalogue {
 		else {
 			if (el.AsArray().size() == 3) {
 				Rgb rgb;
-				rgb.red = static_cast<uint8_t>(el.AsArray()[0].AsInt());
-				rgb.green = static_cast<uint8_t>(el.AsArray()[1].AsInt());
-				rgb.blue = static_cast<uint8_t>(el.AsArray()[2].AsInt());
+				rgb.red_ = static_cast<uint8_t>(el.AsArray()[0].AsInt());
+				rgb.green_ = static_cast<uint8_t>(el.AsArray()[1].AsInt());
+				rgb.blue_ = static_cast<uint8_t>(el.AsArray()[2].AsInt());
 				color = rgb;
 			}
 			else if (el.AsArray().size() == 4) {
 				Rgba rgba;
-				rgba.red = static_cast<uint8_t>(el.AsArray()[0].AsInt());
-				rgba.green = static_cast<uint8_t>(el.AsArray()[1].AsInt());
-				rgba.blue = static_cast<uint8_t>(el.AsArray()[2].AsInt());
-				rgba.opacity = el.AsArray()[3].AsDouble();
+				rgba.red_ = static_cast<uint8_t>(el.AsArray()[0].AsInt());
+				rgba.green_ = static_cast<uint8_t>(el.AsArray()[1].AsInt());
+				rgba.blue_ = static_cast<uint8_t>(el.AsArray()[2].AsInt());
+				rgba.opacity_ = el.AsArray()[3].AsDouble();
 				color = rgba;
 			}
 		}
@@ -45,6 +48,7 @@ namespace transport_catalogue {
 	InputReaderJson::InputReaderJson(istream& is) : is_(is), load_(json::Load(is)) {
 
 	}
+
 
 	void InputReaderJson::ReadInputJsonBaseRequest() {
 		const auto& json_array = ((load_.GetRoot()).AsDict()).at("base_requests"s);
@@ -89,8 +93,8 @@ namespace transport_catalogue {
 		}
 
 	}
-    
-    void InputReaderJson::ReadInputJsonStatRequest() {
+
+	void InputReaderJson::ReadInputJsonStatRequest() {
 		const auto& json_array_out = ((load_.GetRoot()).AsDict()).at("stat_requests"s);
 		if (!json_array_out.IsNull()) {
 			for (const auto& file : json_array_out.AsArray()) {
@@ -100,15 +104,15 @@ namespace transport_catalogue {
 					outputstopjson.id = json_obj.at("id").AsInt();
 					outputstopjson.type = json_obj.at("type").AsString();
 					out_req_.push_back(outputstopjson);
-
-				} else if (json_obj.at("type").AsString() == "Route"s) {
+				}
+				else if (json_obj.at("type").AsString() == "Route"s) {
 					outputstopjson.id = json_obj.at("id").AsInt();
 					outputstopjson.type = json_obj.at("type").AsString();
 					outputstopjson.from = json_obj.at("from").AsString();
 					outputstopjson.to = json_obj.at("to").AsString();
-
 					out_req_.push_back(outputstopjson);
-				} else {
+				}
+				else {
 					outputstopjson.name = json_obj.at("name").AsString();
 					outputstopjson.id = json_obj.at("id").AsInt();
 					outputstopjson.type = json_obj.at("type").AsString();
@@ -116,65 +120,66 @@ namespace transport_catalogue {
 				}
 			}
 		}
-
 	}
-
 
 	void InputReaderJson::ReadInputJsonRenderSettings() {
 
 		const auto& json_array_render = ((load_.GetRoot()).AsDict()).at("render_settings"s).AsDict();
 		if (json_array_render.find("width") != json_array_render.end()) {
-			render_data_.width = json_array_render.find("width")->second.AsDouble();
+            render_settings_.width_ = json_array_render.find("width")->second.AsDouble();
 		}
 
 		if (json_array_render.find("height") != json_array_render.end()) {
-			render_data_.height = json_array_render.find("height")->second.AsDouble();
+            render_settings_.height_ = json_array_render.find("height")->second.AsDouble();
 		}
 
 		if (json_array_render.find("padding") != json_array_render.end()) {
-			render_data_.padding = json_array_render.find("padding")->second.AsDouble();
+            render_settings_.padding_ = json_array_render.find("padding")->second.AsDouble();
 		}
 
 		if (json_array_render.find("line_width") != json_array_render.end()) {
-			render_data_.line_width = json_array_render.find("line_width")->second.AsDouble();
+            render_settings_.line_width_ = json_array_render.find("line_width")->second.AsDouble();
 		}
 
 		if (json_array_render.find("stop_radius") != json_array_render.end()) {
-			render_data_.stop_radius = json_array_render.find("stop_radius")->second.AsDouble();
+            render_settings_.stop_radius_ = json_array_render.find("stop_radius")->second.AsDouble();
 		}
 
 		if (json_array_render.find("bus_label_font_size") != json_array_render.end()) {
-			render_data_.bus_label_font_size = json_array_render.find("bus_label_font_size")->second.AsDouble();
+            render_settings_.bus_label_font_size_ = json_array_render.find("bus_label_font_size")->second.AsDouble();
 		}
 
-		if (json_array_render.find("bus_label_offset") != json_array_render.end()) {
+        if (json_array_render.find("bus_label_offset") != json_array_render.end()) {
 
-			for (auto el : json_array_render.find("bus_label_offset")->second.AsArray()) { render_data_.bus_label_offset.push_back(el.AsDouble()); }
-		}
+            auto el = json_array_render.find("bus_label_offset")->second.AsArray();
+            render_settings_.bus_label_offset_ = std::make_pair(el[0].AsDouble(), el[1].AsDouble() );
+        }
 
-		if (json_array_render.find("stop_label_offset") != json_array_render.end()) {
+        if (json_array_render.find("stop_label_offset") != json_array_render.end()) {
+            auto el = json_array_render.find("stop_label_offset")->second.AsArray();
+            render_settings_.stop_label_offset_ = std::make_pair(el[0].AsDouble(), el[1].AsDouble() );
 
-			for (auto el : json_array_render.find("stop_label_offset")->second.AsArray()) { render_data_.stop_label_offset.push_back(el.AsDouble()); }
-		}
+        }
 
 
 		if (json_array_render.find("stop_label_font_size") != json_array_render.end()) {
-			render_data_.stop_label_font_size = json_array_render.find("stop_label_font_size")->second.AsDouble();
+            render_settings_.stop_label_font_size_ = json_array_render.find("stop_label_font_size")->second.AsDouble();
 		}
 
-		if (json_array_render.find("underlayer_color") != json_array_render.end()) {
+        if (json_array_render.find("underlayer_color") != json_array_render.end()) {
+            render_settings_.underlayer_color_ = GetColor(json_array_render.find("underlayer_color")->second);
 
-			render_data_.underlayer_color.push_back(GetColor(json_array_render.find("underlayer_color")->second));
-		}
+        }
+
 
 		if (json_array_render.find("underlayer_width") != json_array_render.end()) {
-			render_data_.underlayer_width = json_array_render.find("underlayer_width")->second.AsDouble();
+            render_settings_.underlayer_width_ = json_array_render.find("underlayer_width")->second.AsDouble();
 		}
 
 		if (json_array_render.find("color_palette") != json_array_render.end()) {
 			for (auto el : json_array_render.find("color_palette")->second.AsArray()) {
 
-				render_data_.color_palette.push_back(GetColor(el));
+                render_settings_.color_palette_.push_back(GetColor(el));
 
 			}
 
@@ -187,14 +192,35 @@ namespace transport_catalogue {
 		const auto& json_obj = json_array_out.AsDict();
 		route_settings_.bus_velocity = json_obj.at("bus_velocity").AsDouble();
 		route_settings_.bus_wait_time = json_obj.at("bus_wait_time").AsDouble();
+
+	}
+
+	void InputReaderJson::ReadInputJsonSerializeSettings() {
+		const auto& json_array_out = ((load_.GetRoot()).AsDict()).at("serialization_settings"s);
+		const auto& json_obj = json_array_out.AsDict();
+		serialize_file_path_ = json_obj.at("file").AsString();
 	}
 
 	void InputReaderJson::ReadInputJsonRequest() {
 		ReadInputJsonBaseRequest();
-		ReadInputJsonStatRequest();
 		ReadInputJsonRenderSettings();
 		ReadInputJsonRouteSettings();
+		ReadInputJsonSerializeSettings();
 	}
+
+
+	void InputReaderJson::ReadInputJsonRequestForFillBase() {
+		ReadInputJsonBaseRequest();
+		ReadInputJsonRenderSettings();
+		ReadInputJsonRouteSettings();
+		ReadInputJsonSerializeSettings();
+	}
+
+	void InputReaderJson::ReadInputJsonRequestForReadBase() {
+		ReadInputJsonSerializeSettings();
+		ReadInputJsonStatRequest();
+	}
+
 
 
 	void InputReaderJson::UpdStop(TransportCatalogue& tc) {
@@ -215,14 +241,28 @@ namespace transport_catalogue {
 		}
 	}
 
-	RenderData InputReaderJson::GetRenderData() {
-		return render_data_;
+
+
+
+    RenderSettings InputReaderJson::GetRenderSettings() {
+		return render_settings_;
 	}
+
 
 	void InputReaderJson::UpdRouteSettings(TransportCatalogue& tc) {
 
 		tc.AddRouteSettings(route_settings_);
 
+	}
+
+	void InputReaderJson::UpdSerializeSettings(TransportCatalogue& tc) {
+
+		tc.AddSerializePathToFile(serialize_file_path_);
+
+	}
+
+	std::string InputReaderJson::GetSerializeFilePath() {
+		return serialize_file_path_;
 	}
 
 }

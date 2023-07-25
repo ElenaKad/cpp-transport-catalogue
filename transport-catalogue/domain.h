@@ -36,6 +36,7 @@ namespace domain {
 
 	struct Bus {
 		std::string bus_name;
+		//std::deque<std::string*> stops;
 		std::deque<std::string_view> stops;
 		std::string type;
 	};
@@ -45,5 +46,12 @@ namespace domain {
 		double bus_wait_time;
 
 	};
+
+	struct Distance {
+		const Stop* start;
+		const Stop* end;
+		int distance;
+	};
+
 
 }

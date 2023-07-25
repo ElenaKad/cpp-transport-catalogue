@@ -25,8 +25,6 @@ namespace svg {
 		return os;
 	}
 
-
-
 	std::ostream& operator<<(std::ostream& os, const Color& color) {
 		std::ostringstream out;
 		std::visit(ColorPrinter{ out }, color);
@@ -44,8 +42,6 @@ namespace svg {
 		context.out << std::endl;
 	}
 
-
-	// ---------- Circle ------------------
 
 	Circle& Circle::SetCenter(Point center) {
 		center_ = center;
@@ -65,7 +61,6 @@ namespace svg {
 		out << "/>"sv;
 	}
 
-	//--------------------Polyline----------------
 
 		// Добавляет очередную вершину к ломаной линии
 	Polyline& Polyline::AddPoint(Point point) {
@@ -94,10 +89,7 @@ namespace svg {
 
 	}
 
-
-	//----------------------Text--------------------------
-	
-	// Задаёт координаты опорной точки (атрибуты x и y)
+		// Задаёт координаты опорной точки (атрибуты x и y)
 	Text& Text::SetPosition(Point pos) {
 		x = pos.x;
 		y = pos.y;
@@ -155,11 +147,6 @@ namespace svg {
 		out << ">" << text_data << "</text>";
 
 	}
-
-
-	//---------------------------Document------------------------
-
-
 		// Добавляет в svg-документ объект-наследник svg::Object
 	void Document::AddPtr(std::unique_ptr<Object>&& obj) {
 		objects_.emplace_back(std::move(obj));
@@ -176,4 +163,5 @@ namespace svg {
 		out << "</svg>" << std::endl;
 
 	}
+
 }  // namespace svg

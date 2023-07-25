@@ -13,36 +13,27 @@
 
 namespace svg {
 
-	struct Rgb {
-		Rgb() = default;
-		Rgb(uint8_t  red, uint8_t  green, uint8_t  blue)
-			: red(red)
-			, green(green)
-			, blue(blue)
-		{
-		}
+    class Rgb {
+    public:
+        Rgb() = default;
+        Rgb(uint8_t red, uint8_t green, uint8_t blue);
 
-		uint8_t red = 0;
-		uint8_t green = 0;
-		uint8_t blue = 0;
-	};
+        uint8_t red_ = 0;
+        uint8_t green_ = 0;
+        uint8_t blue_ = 0;
+    };
+    inline void print_color(std::ostream& out, Rgb& rgb);
 
-	struct Rgba {
-		Rgba() = default;
-		Rgba(uint8_t  red, uint8_t  green, uint8_t blue, double  opacity)
-			: red(red)
-			, green(green)
-			, blue(blue)
-			, opacity(opacity)
-		{
-		}
+    class Rgba {
+    public:
+        Rgba() = default;
+        Rgba(uint8_t red, uint8_t green, uint8_t blue, double opacity);
 
-		uint8_t red = 0;
-		uint8_t  green = 0;
-		uint8_t blue = 0;
-		double opacity = 1.0;
-	};
-
+        uint8_t red_ = 0;
+        uint8_t green_ = 0;
+        uint8_t blue_ = 0;
+        double opacity_ = 1.0;
+    };
 
 	using Color = std::variant<std::monostate, std::string, Rgb, Rgba>;
 
@@ -119,21 +110,17 @@ namespace svg {
 			os << std::string("none") ;
 		}
 		void operator()(const std::string& s) const {
-			os << s ;
+			os << s;
 		}
 		void operator()(const Rgb& r) const {
-			os << "rgb(" << static_cast<unsigned int>(r.red) << "," << static_cast<unsigned int>(r.green) << "," << static_cast<unsigned int>(r.blue) << ")" /*<< std::endl*/;
+			os << "rgb(" << static_cast<unsigned int>(r.red_) << "," << static_cast<unsigned int>(r.green_) << "," << static_cast<unsigned int>(r.blue_) << ")" ;
 		}
 		void operator()(const Rgba& r) const {
-			os << "rgba(" << static_cast<unsigned int>(r.red) << "," << static_cast<unsigned int>(r.green) << "," << static_cast<unsigned int>(r.blue) << "," << r.opacity << ")" /*<< std::endl*/;
+			os << "rgba(" << static_cast<unsigned int>(r.red_) << "," << static_cast<unsigned int>(r.green_) << "," << static_cast<unsigned int>(r.blue_) << "," << r.opacity_ << ")" ;
 		}
 	};
 
-
 	std::ostream& operator<<(std::ostream& os, const Color& color);
-
-
-
 
 	template <typename Owner>
 	class PathProps {
@@ -210,7 +197,6 @@ namespace svg {
 		std::optional<double> stroke_width_;
 	};
 
-
 	class Circle final : public Object, public PathProps<Circle> {
 	public:
 		Circle& SetCenter(Point center);
@@ -223,7 +209,6 @@ namespace svg {
 		double radius_ = 1.0;
 	};
 
-
 	class Polyline : public  Object, public PathProps<Polyline> {
 	public:
 		// Добавляет очередную вершину к ломаной линии
@@ -233,9 +218,6 @@ namespace svg {
 		std::vector<Point> points_;
 		void RenderObject(const RenderContext& context) const override;
 	};
-
-
-
 
 	class Text : public Object, public PathProps<Text> {
 	public:
@@ -256,13 +238,8 @@ namespace svg {
 
 		// Задаёт текстовое содержимое объекта (отображается внутри тега text)
 		Text& SetData(std::string data);
-
-
-
-
+        
 	private:
-
-
 		double x, y; // Координаты опорной точки
 		double dx, dy; // Смещение относительно опорной точки
 
@@ -278,7 +255,6 @@ namespace svg {
 		void RenderObject(const RenderContext& context) const override;
 
 	};
-
 
 	class ObjectContainer {
 	public:
@@ -312,6 +288,4 @@ namespace svg {
 	private:
 		std::vector<std::unique_ptr<Object>> objects_;
 	};
-
-
 }  // namespace svg

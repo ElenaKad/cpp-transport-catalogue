@@ -17,10 +17,6 @@ namespace transport_catalogue {
 
 		std::string from;
 		std::string to;
-
-
-
-
 	};
 
 	struct StopComparer {
@@ -73,20 +69,31 @@ namespace transport_catalogue {
 		const std::deque<domain::Bus>& GetBuses() const;
 		const std::deque<domain::Stop>& GetStops() const ;
 
+		// добавлено на 13 спринт
 		void AddRouteSettings(const domain::RouteSettings route_settings);
 		double GetWaitTime();
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> GetstopsDistanceTime();
 		
-
-
 		double GetVelocity();
 		size_t GetStopsQuantity();
-		
 
+		std::string GetStopNameByVertexId(size_t vertex_id);
+		size_t GetStopVertexIdByName(std::string_view stop_name);
+		bool CheckExistenceOfStopByName(std::string stop_name);
+		std::set<domain::Stop*, StopPointerComparer> GetStopSet();
+
+		// Добавлено 15 спринт 
+		void AddSerializePathToFile(const std::string& serialize_file_path);
+
+		const std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairOfStopPointerUsingString>& GetStopDistances() const;
+
+		void AddDistanceFromSerializer(const std::vector<domain::Distance>& distances);
+		std::string GetSerializerFilePath() const;
+        domain::RouteSettings GetRouteSettings() const;
 
 	private:
-		double bus_wait_time_ = 6;  
-		double bus_velocity_ = 40; 
+		double bus_wait_time_ = 6;  // добавлено на 13 спринт
+		double bus_velocity_ = 40; // добавлено на 13 спринт
 		std::deque<domain::Bus> buses_;
 		std::deque<domain::Stop> stops_;
 		
@@ -95,8 +102,9 @@ namespace transport_catalogue {
 		std::unordered_map<std::string_view, std::set<std::string>> stop_info_;
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairOfStopPointerUsingString> stops_distance_;
 		std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> stops_distance_time_;
-
 		
+		// добавоено на 15 спринт 
+		std::string serialize_file_path_;
 
 	};
 }

@@ -90,10 +90,10 @@ namespace graph {
 		std::optional<size_t> ActivityProcessor::GetValueByKey(std::string_view key) {
 			auto it = stop_to_vertex_.find(key);
 			if (it != stop_to_vertex_.end()) {
-				return it->second;  
+				return it->second;  // Возвращаем значение, связанное с ключом
 			}
 			else {
-				return std::nullopt;  
+				return std::nullopt;  // Ключ не найден
 			}
 		}
 
@@ -103,7 +103,7 @@ namespace graph {
 				return true;
 			}
 			else {
-				return false; 
+				return false;  // Ключ не найден
 			}
 		}
 
@@ -144,8 +144,8 @@ namespace graph {
 				int distance_inner = tc.GetStopDistance(*stop_1, *stop_1_next); // расстояние от остановки 
 				double time_inner = distance_inner / (tc.GetVelocity() * 1000 / 60) + sum_time;
 
-				Edge<double>* edge_mirror = new Edge<double>{ num_vertex_1_wait, num_vertex1_go, tc.GetWaitTime() , std::string(*it), 0 };   
-				Edge<double>* edge_go_wait = new Edge<double>{ num_vertex1_go, num_vertex_next_wait, time_inner, bus_name, 1 };   
+				Edge<double>* edge_mirror = new Edge<double>{ num_vertex_1_wait, num_vertex1_go, tc.GetWaitTime() , std::string(*it), 0 };  // добавляю ребро зеркало для первой остановки 
+				Edge<double>* edge_go_wait = new Edge<double>{ num_vertex1_go, num_vertex_next_wait, time_inner, bus_name, 1 };  // добавляю ребро зеркало для первой остановки 
 
 				graph_.AddEdge(*edge_mirror);
 
@@ -173,7 +173,7 @@ namespace graph {
 					int distance_1_2 = tc.GetStopDistance(*stop_inner, *stop_inner_next); // расстояние от остановки 
 
 
-					double time_min_1_2 = distance_1_2 / (tc.GetVelocity() * 1000 / 60) + sum_time; // увеличиваю время на то что уже было накоплено пока ехал до этой остановки 
+					double time_min_1_2 = distance_1_2 / (tc.GetVelocity() * 1000 / 60) + sum_time; // увиличиваю время на то что уже было накоплено пока ехал до этой остановки 
 
 					int span_count = std::distance(stops.begin(), std::next(it_inner)) - std::distance(stops.begin(), it);
 
@@ -187,10 +187,11 @@ namespace graph {
 
 		}
 
-		void ActivityProcessor::AddStopsNonRoundTrip(std::deque<std::string_view> stops, const std::string& bus_name) {  
-			AddStopsOneDirection(stops, bus_name); 
-			std::reverse(stops.begin(), stops.end()); 
-			AddStopsOneDirection(stops, bus_name); 
+
+		void ActivityProcessor::AddStopsNonRoundTrip(std::deque<std::string_view> stops, const std::string& bus_name) {  // Тут если передать stops по константной ссылке то ошибка в utility
+			AddStopsOneDirection(stops, bus_name); // Заполняю в прямом направлении
+			std::reverse(stops.begin(), stops.end()); // разворачияю списов остановок 
+			AddStopsOneDirection(stops, bus_name); // Заполняю в обратном направлении
 
 		}
 	

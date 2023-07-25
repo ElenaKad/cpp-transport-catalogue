@@ -47,15 +47,21 @@ namespace transport_catalogue {
 		void ReadInputJsonRenderSettings();
 
 		void ReadInputJsonRouteSettings();
+		void ReadInputJsonSerializeSettings();
 
 
 		void ReadInputJsonRequest();
+
+		// Добавлено на 15 спринт 
+		void ReadInputJsonRequestForFillBase();
+		void ReadInputJsonRequestForReadBase();
 
 		void UpdStop(TransportCatalogue& tc);
 
 		void UpdBus(TransportCatalogue& tc);
 
 		void UpdStopDist(TransportCatalogue& tc);
+
 
 		void ManageOutputRequests(TransportCatalogue& tc, MapRenderer& mr, graph::ActivityProcessor& actprocess)
 		{
@@ -230,10 +236,13 @@ namespace transport_catalogue {
 			json::Print(json::Document{ queries }, out);
 		}
 
-		RenderData GetRenderData();
+        RenderSettings GetRenderSettings();
 
 		void UpdRouteSettings(TransportCatalogue& tc);
+		// добавлено на 15 спринт
+		void UpdSerializeSettings(TransportCatalogue& tc);
 
+		std::string GetSerializeFilePath();
 
 
 	private:
@@ -244,9 +253,10 @@ namespace transport_catalogue {
 		std::deque<domain::BusDescription> upd_req_bus_;
 		std::deque<domain::Stop> upd_req_stop_;
 		std::vector<domain::StopDistancesDescription> distances_;
-		RenderData render_data_;
+        RenderSettings render_settings_;
 		json::Document load_;
 		domain::RouteSettings route_settings_;
+		std::string serialize_file_path_;
 
 	};
 

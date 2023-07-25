@@ -23,12 +23,11 @@ namespace transport_catalogue {
 		bptr.stops = stops_ptr;
 		buses_.push_back(bptr); 
 		Bus* bptr_bus = &buses_.back();
-		bus_name_to_bus_.emplace(b.bus_name, bptr_bus);
+		bus_name_to_bus_.emplace(bptr_bus->bus_name, bptr_bus);
 		for (auto el : stops_ptr) {
-			stop_info_[el].insert(b.bus_name);
+		stop_info_[el].insert(bptr_bus->bus_name);
 		}
 	}
-
 
 	void TransportCatalogue::AddStop(Stop stop) {
 		stops_.push_back(move(stop));
@@ -152,15 +151,12 @@ namespace transport_catalogue {
 	const std::deque<Bus>& TransportCatalogue::GetBuses() const { return buses_; }
 	const std::deque<Stop>& TransportCatalogue::GetStops() const { return stops_; }
 
-
-	// заполнить скорость и время ожидания 
 	void TransportCatalogue::AddRouteSettings(const domain::RouteSettings route_settings) {
 		bus_wait_time_ = route_settings.bus_wait_time;
 		bus_velocity_ = route_settings.bus_velocity;
 	}
 
-	// получить время ожидания на остановке
-	double TransportCatalogue::GetWaitTime() { return bus_wait_time_;  }
+	double TransportCatalogue::GetWaitTime() { return bus_wait_time_;  };
 
 	size_t TransportCatalogue::GetStopsQuantity() {
 		return stop_name_to_stop_.size();
@@ -168,10 +164,39 @@ namespace transport_catalogue {
 	
 	std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, double, detail::PairOfStopPointerUsingString> TransportCatalogue::GetstopsDistanceTime() {
 		return stops_distance_time_;
-	}
+	};
 
 	double TransportCatalogue::GetVelocity() { return bus_velocity_; }
 
+	void TransportCatalogue::AddSerializePathToFile(const std::string& serialize_file_path) {
+		serialize_file_path_ = serialize_file_path;
+	}
 
+	const std::unordered_map<std::pair<const domain::Stop*, const domain::Stop*>, int, detail::PairOfStopPointerUsingString>& TransportCatalogue::GetStopDistances() const {
+		return stops_distance_;
+	}
+
+	void TransportCatalogue::AddDistanceFromSerializer(const std::vector<domain::Distance>& distances) {
+		for (const auto& distance : distances) {
+			const Stop* startStop = distance.start;
+			const Stop* endStop = distance.end;
+			int distanceValue = distance.distance;
+			stops_distance_.emplace(std::make_pair(startStop, endStop), distanceValue);
+			stops_distance_time_.emplace(std::make_pair(startStop, endStop), distanceValue / (bus_velocity_ * 1000 / 60));
+		}
+	}
+
+	std::string TransportCatalogue::GetSerializerFilePath() const {
+		return serialize_file_path_;
+	}
+
+
+
+    domain::RouteSettings TransportCatalogue::GetRouteSettings() const{
+        RouteSettings rs;
+        rs.bus_velocity = bus_velocity_;
+        rs.bus_wait_time = bus_wait_time_;
+        return rs;
+    }
 
 }

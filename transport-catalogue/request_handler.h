@@ -10,11 +10,11 @@ namespace transport_catalogue {
     public:
         
         RequestHandler(transport_catalogue::TransportCatalogue& tc, MapRenderer& renderer);
-
+                
         void RenderMapByString();
 
     private:
-        
+        // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
         transport_catalogue::TransportCatalogue& tc_;
         MapRenderer& renderer_;
     };

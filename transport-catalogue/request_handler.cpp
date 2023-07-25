@@ -8,7 +8,6 @@ namespace transport_catalogue {
 
     void RequestHandler::RenderMapByString() {
         std::string str = renderer_.DrawRouteGetDoc(tc_);
-
         std::stringstream ss;
         ss << str;
         std::string result = ss.str();

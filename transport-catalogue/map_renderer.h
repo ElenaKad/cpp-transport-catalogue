@@ -10,26 +10,21 @@
 #include <algorithm>
 
 namespace transport_catalogue {
-    struct RenderData {
 
-        double width;
-        double height;
-        double padding;
-        double line_width;
-
-        double stop_radius;
-        int bus_label_font_size;
-        std::vector<double> bus_label_offset;
-        int stop_label_font_size;
-        std::vector<double> stop_label_offset;
-
-        std::vector<svg::Color> underlayer_color;
-        double underlayer_width;
-        std::vector<svg::Color> color_palette;
-
+    struct RenderSettings {
+        double width_;
+        double height_;
+        double padding_;
+        double line_width_;
+        double stop_radius_;
+        int bus_label_font_size_;
+        std::pair<double, double> bus_label_offset_;
+        int stop_label_font_size_;
+        std::pair<double, double> stop_label_offset_;
+        svg::Color underlayer_color_;
+        double underlayer_width_;
+        std::vector<svg::Color> color_palette_;
     };
-
-
 
     bool IsZero(double value);
 
@@ -104,12 +99,12 @@ namespace transport_catalogue {
 
     class MapRenderer {
     public:
-        explicit MapRenderer(const  RenderData& render_data);
+        explicit MapRenderer(const  RenderSettings& render_settings);
 
         std::string DrawRouteGetDoc(const transport_catalogue::TransportCatalogue& tc);
 
     private:
-        const RenderData& render_data_;
+        const RenderSettings& render_settings_;
     };
 
 
